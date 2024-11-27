@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";

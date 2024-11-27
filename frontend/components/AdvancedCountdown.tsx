@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coffee, Utensils, Sun, Moon, Clock } from "lucide-react";
+import { Coffee, Utensils, Sun, Moon, Clock, PartyPopper } from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
+import { useAuth } from "@/components/AuthContext";
 
 const breaks = [
   { start: "10:15", end: "10:30", label: "Morning Break", icon: Coffee },
@@ -11,6 +12,7 @@ const breaks = [
   { start: "14:30", end: "14:45", label: "Afternoon Break", icon: Sun },
 ];
 
+const SCHOOL_START = { hour: 8, minute: 30 };
 const END_OF_DAY = { hour: 16, minute: 0 };
 
 export default function AdvancedCountdown() {
@@ -19,6 +21,7 @@ export default function AdvancedCountdown() {
   const [quote, setQuote] = useState({ author: "", quote: "" });
   const [showQuote, setShowQuote] = useState(false);
   const [isCounterMounted, setIsCounterMounted] = useState(false);
+  const { user } = useAuth();
 
   useEffect(() => {
     const fetchQuote = async () => {
@@ -67,6 +70,20 @@ export default function AdvancedCountdown() {
 
     return () => clearInterval(timer);
   }, []);
+
+  const isSchoolEnded = () => {
+    const now = new Date();
+    const endTime = new Date(now);
+    endTime.setHours(END_OF_DAY.hour, END_OF_DAY.minute, 0, 0);
+    return now >= endTime;
+  };
+
+  const isBeforeSchool = () => {
+    const now = new Date();
+    const startTime = new Date(now);
+    startTime.setHours(SCHOOL_START.hour, SCHOOL_START.minute, 0, 0);
+    return now < startTime;
+  };
 
   const getCountdown = (targetHour: number, targetMinute: number) => {
     const now = new Date();
@@ -123,39 +140,43 @@ export default function AdvancedCountdown() {
     hours,
     minutes,
     seconds,
+    previousValues = { hours: 0, minutes: 0, seconds: 0 },
   }: {
     hours: number;
     minutes: number;
     seconds: number;
+    previousValues?: { hours: number; minutes: number; seconds: number };
   }) => (
     <div className="flex justify-center space-x-4">
       {[
-        { value: hours, label: "Hours" },
-        { value: minutes, label: "Minutes" },
-        { value: seconds, label: "Seconds" },
-      ].map(({ value, label }, index) => (
+        { value: hours, prevValue: previousValues.hours, label: "Hours" },
+        { value: minutes, prevValue: previousValues.minutes, label: "Minutes" },
+        { value: seconds, prevValue: previousValues.seconds, label: "Seconds" },
+      ].map(({ value, prevValue, label }, index) => (
         <motion.div
           key={index}
           initial={false}
-          animate={{
-            opacity: 1,
-            scale: [1, 1.05, 1],
-            transition: { duration: 0.3 },
-          }}
           className="flex flex-col items-center"
         >
           <div className="relative">
             <AnimatePresence mode="wait">
-              <motion.div
-                key={value}
-                initial={{ y: 20, opacity: 0 }}
-                animate={{ y: 0, opacity: 1 }}
-                exit={{ y: -20, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                className="text-6xl font-bold text-gray-800 dark:text-gray-200"
-              >
-                {value.toString().padStart(2, "0")}
-              </motion.div>
+              {value !== prevValue && (
+                <motion.div
+                  key={value}
+                  initial={{ y: 20, opacity: 0 }}
+                  animate={{ y: 0, opacity: 1 }}
+                  exit={{ y: -20, opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="text-6xl font-bold text-gray-800 dark:text-gray-200"
+                >
+                  {value.toString().padStart(2, "0")}
+                </motion.div>
+              )}
+              {value === prevValue && (
+                <div className="text-6xl font-bold text-gray-800 dark:text-gray-200">
+                  {value.toString().padStart(2, "0")}
+                </div>
+              )}
             </AnimatePresence>
           </div>
           <div className="text-sm uppercase text-gray-500 dark:text-gray-400">
@@ -168,8 +189,61 @@ export default function AdvancedCountdown() {
 
   const { hours, minutes, seconds, isOngoing } = getBreakCountdown();
   const endOfDayCountdown = getCountdown(END_OF_DAY.hour, END_OF_DAY.minute);
+  const startOfDayCountdown = getCountdown(
+    SCHOOL_START.hour,
+    SCHOOL_START.minute
+  );
 
-  const mainContent =
+  const schoolEndedContent = (
+    <motion.div
+      layout
+      transition={{ duration: 0.5 }}
+      className="flex flex-col items-center"
+    >
+      <PartyPopper className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mb-4" />
+      {user && user.role === "teacher" ? (
+        <p className=" font-bold text-gray-800 dark:text-gray-200 mb-2">
+          Hey {user.name} 🎉
+        </p>
+      ) : null}
+      {user && user.role === "student" ? (
+        <p className=" font-bold text-gray-800 dark:text-gray-200 mb-2">
+          Hey {user.name}, lets go home 🎉
+        </p>
+      ) : null}
+
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+        School Day Has Ended!
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400">
+        See you tomorrow at {SCHOOL_START.hour}:
+        {SCHOOL_START.minute.toString().padStart(2, "0")}!
+      </p>
+    </motion.div>
+  );
+
+  const beforeSchoolContent = (
+    <motion.div
+      layout
+      transition={{ duration: 0.5 }}
+      className="flex flex-col items-center"
+    >
+      <Sun className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mb-4" />
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
+        School Hasn&apos;t Started Yet
+      </h2>
+      <p className="text-gray-600 dark:text-gray-400 mb-8">
+        Time until school starts:
+      </p>
+      <CountdownDisplay
+        hours={startOfDayCountdown.hours}
+        minutes={startOfDayCountdown.minutes}
+        seconds={startOfDayCountdown.seconds}
+      />
+    </motion.div>
+  );
+
+  const regularContent =
     activeBreak !== null ? (
       <motion.div
         layout
@@ -243,10 +317,20 @@ export default function AdvancedCountdown() {
           className="mt-8 text-sm text-gray-500 dark:text-gray-400"
         >
           <Clock className="inline-block h-4 w-4 mr-2 mb-1" />
-          School ends at {END_OF_DAY.hour}:00
+          School starts at {SCHOOL_START.hour}:
+          {SCHOOL_START.minute.toString().padStart(2, "0")}
         </motion.div>
       </motion.div>
     );
+
+  let mainContent;
+  if (isSchoolEnded()) {
+    mainContent = schoolEndedContent;
+  } else if (isBeforeSchool()) {
+    mainContent = beforeSchoolContent;
+  } else {
+    mainContent = regularContent;
+  }
 
   return (
     <div className="text-center min-h-screen flex flex-col justify-center">

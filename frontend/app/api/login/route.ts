@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
@@ -42,7 +41,7 @@ export async function POST(request: Request) {
     }
 
     // Return user data (excluding password)
-    const { ...userWithoutPassword } = data[0];
+    const { ...userWithoutPassword } = data;
     return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Login error:", error);

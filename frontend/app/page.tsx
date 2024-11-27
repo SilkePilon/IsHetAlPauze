@@ -1,5 +1,5 @@
 import AdvancedCountdown from "../components/AdvancedCountdown";
-import TeacherRoster from "../components/TeacherRoster";
+// import TeacherRoster from "../components/TeacherRoster";
 
 export default function Home() {
   return (

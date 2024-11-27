@@ -1,5 +1,6 @@
 import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
+import bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
   const supabase = createServerSupabaseClient();
@@ -15,23 +16,33 @@ export async function POST(request: Request) {
       );
     }
 
-    // Authenticate with Supabase
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    // Find user by email
+    const { data, error } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .single();
 
-    if (error) {
-      return NextResponse.json({ error: error.message }, { status: 401 });
+    if (error || !data) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
     }
 
-    // Return user data
-    return NextResponse.json({
-      id: data.user?.id,
-      email: data.user?.email,
-      name: data.user?.user_metadata?.name,
-      role: data.user?.user_metadata?.role,
-    });
+    // Verify password
+    const passwordMatch = await bcrypt.compare(password, data.password);
+
+    if (!passwordMatch) {
+      return NextResponse.json(
+        { error: "Invalid credentials" },
+        { status: 401 }
+      );
+    }
+
+    // Return user data (excluding password)
+    const { password: _, ...userWithoutPassword } = data;
+    return NextResponse.json(userWithoutPassword);
   } catch (error) {
     console.error("Login error:", error);
     return NextResponse.json(

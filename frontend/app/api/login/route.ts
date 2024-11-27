@@ -1,38 +1,9 @@
+import { createServerSupabaseClient } from "@/utils/supabase/server";
 import { NextResponse } from "next/server";
-import sqlite3 from "sqlite3";
-import { open } from "sqlite";
-import bcrypt from "bcryptjs";
-import path from "path";
-
-import type { Database } from "sqlite";
-
-let dbInstance: Database | null = null;
-
-async function getDb() {
-  if (dbInstance) return dbInstance;
-
-  const dbPath = path.join(process.cwd(), "database.sqlite");
-
-  dbInstance = await open({
-    filename: dbPath,
-    driver: sqlite3.Database,
-  });
-
-  // Ensure tables are created
-  await dbInstance.exec(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      name TEXT NOT NULL,
-      email TEXT UNIQUE NOT NULL,
-      password TEXT NOT NULL,
-      role TEXT NOT NULL
-    )
-  `);
-
-  return dbInstance;
-}
 
 export async function POST(request: Request) {
+  const supabase = createServerSupabaseClient();
+
   try {
     const { email, password } = await request.json();
 
@@ -44,34 +15,22 @@ export async function POST(request: Request) {
       );
     }
 
-    const db = await getDb();
+    // Authenticate with Supabase
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
 
-    // Get user from database
-    const user = await db.get("SELECT * FROM users WHERE email = ?", [email]);
-
-    if (!user) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
+    if (error) {
+      return NextResponse.json({ error: error.message }, { status: 401 });
     }
 
-    // Compare passwords
-    const passwordMatch = await bcrypt.compare(password, user.password);
-
-    if (!passwordMatch) {
-      return NextResponse.json(
-        { error: "Invalid credentials" },
-        { status: 401 }
-      );
-    }
-
-    // Return user data (excluding password)
+    // Return user data
     return NextResponse.json({
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
+      id: data.user?.id,
+      email: data.user?.email,
+      name: data.user?.user_metadata?.name,
+      role: data.user?.user_metadata?.role,
     });
   } catch (error) {
     console.error("Login error:", error);

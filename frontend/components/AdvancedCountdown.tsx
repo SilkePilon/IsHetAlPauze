@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Coffee, Utensils, Sun, Moon, Clock, PartyPopper } from "lucide-react";
+import {
+  Coffee,
+  Utensils,
+  Sun,
+  Moon,
+  Clock,
+  PartyPopper,
+  Loader2,
+} from "lucide-react";
 import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/components/AuthContext";
 
@@ -16,11 +24,11 @@ const SCHOOL_START = { hour: 8, minute: 30 };
 const END_OF_DAY = { hour: 16, minute: 0 };
 
 export default function AdvancedCountdown() {
-  const [currentTime, setCurrentTime] = useState(new Date());
+  const [, setCurrentTime] = useState(new Date());
   const [activeBreak, setActiveBreak] = useState<number | null>(null);
   const [quote, setQuote] = useState({ author: "", quote: "" });
   const [showQuote, setShowQuote] = useState(false);
-  const [isCounterMounted, setIsCounterMounted] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -37,8 +45,13 @@ export default function AdvancedCountdown() {
     };
 
     fetchQuote();
-    setTimeout(() => setIsCounterMounted(true), 500);
-    setTimeout(() => setShowQuote(true), 1500);
+
+    // Simulate loading time
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 2000);
+
+    setTimeout(() => setShowQuote(true), 3500);
   }, []);
 
   useEffect(() => {
@@ -103,30 +116,41 @@ export default function AdvancedCountdown() {
   };
 
   const getBreakCountdown = () => {
-    if (activeBreak === null) {
+    const now = new Date();
+    let targetBreak = null;
+    let isOngoing = false;
+
+    for (let i = 0; i < breaks.length; i++) {
+      const breakTime = breaks[i];
+      const [startHour, startMinute] = breakTime.start.split(":").map(Number);
+      const [endHour, endMinute] = breakTime.end.split(":").map(Number);
+      const start = new Date(now).setHours(startHour, startMinute, 0, 0);
+      const end = new Date(now).setHours(endHour, endMinute, 0, 0);
+
+      if (now.getTime() >= start && now.getTime() < end) {
+        targetBreak = breakTime;
+        isOngoing = true;
+        break;
+      } else if (now.getTime() < start) {
+        targetBreak = breakTime;
+        break;
+      }
+    }
+
+    if (!targetBreak) {
       return { hours: 0, minutes: 0, seconds: 0, isOngoing: false };
     }
 
-    const breakTime = breaks[activeBreak];
-    const [startHour, startMinute] = breakTime.start.split(":").map(Number);
-    const [endHour, endMinute] = breakTime.end.split(":").map(Number);
-    const start = new Date(currentTime).setHours(startHour, startMinute, 0, 0);
-    const end = new Date(currentTime).setHours(endHour, endMinute, 0, 0);
+    const [targetHour, targetMinute] = (
+      isOngoing ? targetBreak.end : targetBreak.start
+    )
+      .split(":")
+      .map(Number);
+    const target = new Date(now).setHours(targetHour, targetMinute, 0, 0);
+    let diff = target - now.getTime();
 
-    let diff;
-    let isOngoing = false;
-
-    if (currentTime.getTime() >= start && currentTime.getTime() < end) {
-      diff = end - currentTime.getTime();
-      isOngoing = true;
-    } else {
-      diff = start - currentTime.getTime();
-      if (diff < 0) {
-        const tomorrow = new Date(currentTime);
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        tomorrow.setHours(startHour, startMinute, 0, 0);
-        diff = tomorrow.getTime() - currentTime.getTime();
-      }
+    if (diff < 0) {
+      diff += 24 * 60 * 60 * 1000; // Add 24 hours if the target is tomorrow
     }
 
     const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -187,7 +211,12 @@ export default function AdvancedCountdown() {
     </div>
   );
 
-  const { hours, minutes, seconds, isOngoing } = getBreakCountdown();
+  const BreakIcon = ({ icon: Icon }: { icon: React.ElementType }) => (
+    <Icon className="inline-block h-16 w-16 text-blue-500 dark:text-blue-400" />
+  );
+
+  const breakCountdown = getBreakCountdown();
+  const { hours, minutes, seconds, isOngoing } = breakCountdown;
   const endOfDayCountdown = getCountdown(END_OF_DAY.hour, END_OF_DAY.minute);
   const startOfDayCountdown = getCountdown(
     SCHOOL_START.hour,
@@ -197,18 +226,20 @@ export default function AdvancedCountdown() {
   const schoolEndedContent = (
     <motion.div
       layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center"
     >
       <PartyPopper className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mb-4" />
       {user && user.role === "teacher" ? (
-        <p className=" font-bold text-gray-800 dark:text-gray-200 mb-2">
+        <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
           Hey {user.name} 🎉
         </p>
       ) : null}
       {user && user.role === "student" ? (
-        <p className=" font-bold text-gray-800 dark:text-gray-200 mb-2">
-          Hey {user.name}, lets go home 🎉
+        <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
+          Hey {user.name}, let&apos;s go home 🎉
         </p>
       ) : null}
 
@@ -225,6 +256,8 @@ export default function AdvancedCountdown() {
   const beforeSchoolContent = (
     <motion.div
       layout
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
       className="flex flex-col items-center"
     >
@@ -247,10 +280,10 @@ export default function AdvancedCountdown() {
     activeBreak !== null ? (
       <motion.div
         layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`flex flex-col items-center ${
-          isCounterMounted ? "-mt-20" : "mt-0"
-        }`}
+        className="flex flex-col items-center"
       >
         <motion.div
           initial={{ scale: 0.9, opacity: 0 }}
@@ -258,10 +291,7 @@ export default function AdvancedCountdown() {
           transition={{ duration: 0.5 }}
           className="mb-8"
         >
-          {breaks[activeBreak].icon({
-            className:
-              "inline-block h-16 w-16 text-blue-500 dark:text-blue-400",
-          })}
+          <BreakIcon icon={breaks[activeBreak].icon} />
           <h2 className="mt-2 text-2xl font-bold text-gray-800 dark:text-gray-200">
             {isOngoing ? "Ongoing: " : "Next: "}
             {breaks[activeBreak].label}
@@ -284,10 +314,10 @@ export default function AdvancedCountdown() {
     ) : (
       <motion.div
         layout
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className={`flex flex-col items-center ${
-          isCounterMounted ? "-mt-20" : "mt-0"
-        }`}
+        className="flex flex-col items-center"
       >
         <Moon className="h-16 w-16 text-blue-500 dark:text-blue-400 mb-4" />
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
@@ -317,14 +347,28 @@ export default function AdvancedCountdown() {
           className="mt-8 text-sm text-gray-500 dark:text-gray-400"
         >
           <Clock className="inline-block h-4 w-4 mr-2 mb-1" />
-          School starts at {SCHOOL_START.hour}:
-          {SCHOOL_START.minute.toString().padStart(2, "0")}
+          School ends at {END_OF_DAY.hour}:
+          {END_OF_DAY.minute.toString().padStart(2, "0")}
         </motion.div>
       </motion.div>
     );
 
   let mainContent;
-  if (isSchoolEnded()) {
+  if (isLoading) {
+    mainContent = (
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        className="flex flex-col items-center"
+      >
+        <Loader2 className="h-16 w-16 text-blue-500 dark:text-blue-400 animate-spin mb-4" />
+        <p className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+          Loading...
+        </p>
+      </motion.div>
+    );
+  } else if (isSchoolEnded()) {
     mainContent = schoolEndedContent;
   } else if (isBeforeSchool()) {
     mainContent = beforeSchoolContent;
@@ -338,7 +382,17 @@ export default function AdvancedCountdown() {
         <ThemeToggle />
       </div>
 
-      {mainContent}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={isLoading ? "loading" : "content"}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -20 }}
+          transition={{ duration: 0.5 }}
+        >
+          {mainContent}
+        </motion.div>
+      </AnimatePresence>
 
       <AnimatePresence>
         {showQuote && quote.quote && (

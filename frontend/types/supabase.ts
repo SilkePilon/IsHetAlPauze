@@ -6,6 +6,16 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[];
 
+export interface Message {
+  id: string;
+  content: string;
+  user_id: string;
+  created_at: string;
+  user: {
+    name: string;
+  };
+}
+
 export type Database = {
   public: {
     Tables: {
@@ -35,6 +45,34 @@ export type Database = {
           created_at?: string;
         };
         Relationships: [];
+      };
+      messages: {
+        Row: {
+          id: string;
+          content: string;
+          user_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          content: string;
+          user_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          content?: string;
+          user_id?: string;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "messages_user_id_fkey";
+            columns: ["user_id"];
+            referencedRelation: "users";
+            referencedColumns: ["id"];
+          }
+        ];
       };
     };
     Views: {

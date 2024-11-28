@@ -11,7 +11,6 @@ import {
   PartyPopper,
   Loader2,
 } from "lucide-react";
-import ThemeToggle from "./ThemeToggle";
 import { useAuth } from "@/components/AuthContext";
 
 const breaks = [
@@ -405,10 +404,6 @@ export default function AdvancedCountdown() {
 
   return (
     <div className="text-center min-h-screen flex flex-col justify-center">
-      <div className="absolute top-4 right-4">
-        <ThemeToggle />
-      </div>
-
       <AnimatePresence mode="wait">
         <motion.div
           key={isLoading ? "loading" : "content"}

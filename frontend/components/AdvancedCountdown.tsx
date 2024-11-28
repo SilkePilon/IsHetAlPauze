@@ -84,6 +84,17 @@ export default function AdvancedCountdown() {
     return () => clearInterval(timer);
   }, []);
 
+  const getFunMessage = (name: string) => {
+    const messages = [
+      `Hey ${name}! 🌟 Ready to rock this school day?`,
+      `${name}, you're crushing it! 💪 Keep up the awesome work!`,
+      `Woohoo, ${name}! 🎉 Another day of learning adventures!`,
+      `${name}, you're a superstar! ⭐ Shine bright today!`,
+      `Hey ${name}! 🚀 Let's blast off into a day of knowledge!`,
+    ];
+    return messages[Math.floor(Math.random() * messages.length)];
+  };
+
   const isSchoolEnded = () => {
     const now = new Date();
     const endTime = new Date(now);
@@ -232,17 +243,13 @@ export default function AdvancedCountdown() {
       className="flex flex-col items-center"
     >
       <PartyPopper className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mb-4" />
-      {user && user.role === "teacher" ? (
+      {user && (
         <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
-          Hey {user.name} 🎉
+          {user.role === "teacher"
+            ? `Fantastic job today, ${user.name}! 🎓 Time to relax!`
+            : `Woohoo, ${user.name}! 🎒 School's out, time to play!`}
         </p>
-      ) : null}
-      {user && user.role === "student" ? (
-        <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
-          Hey {user.name}, let&apos;s go home 🎉
-        </p>
-      ) : null}
-
+      )}
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
         School Day Has Ended!
       </h2>
@@ -262,6 +269,11 @@ export default function AdvancedCountdown() {
       className="flex flex-col items-center"
     >
       <Sun className="h-16 w-16 text-yellow-500 dark:text-yellow-400 mb-4" />
+      {user && (
+        <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
+          {getFunMessage(user.name)}
+        </p>
+      )}
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
         School Hasn&apos;t Started Yet
       </h2>
@@ -292,6 +304,16 @@ export default function AdvancedCountdown() {
           className="mb-8"
         >
           <BreakIcon icon={breaks[activeBreak].icon} />
+          {user && (
+            <p
+              style={{ marginTop: "10px" }}
+              className="font-bold text-gray-800 dark:text-gray-200 mb-2"
+            >
+              {isOngoing
+                ? `Enjoy your break, ${user.name}! 🌈 Recharge those batteries!`
+                : `Hey ${user.name}, next break is coming up! 🕒 Hang in there!`}
+            </p>
+          )}
           <h2 className="mt-2 text-2xl font-bold text-gray-800 dark:text-gray-200">
             {isOngoing ? "Ongoing: " : "Next: "}
             {breaks[activeBreak].label}
@@ -320,6 +342,11 @@ export default function AdvancedCountdown() {
         className="flex flex-col items-center"
       >
         <Moon className="h-16 w-16 text-blue-500 dark:text-blue-400 mb-4" />
+        {user && (
+          <p className="font-bold text-gray-800 dark:text-gray-200 mb-2">
+            {`${user.name}, you're in the home stretch! 🏁 Keep going!`}
+          </p>
+        )}
         <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">
           No More Breaks Today
         </h2>
